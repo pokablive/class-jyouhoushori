@@ -38,6 +38,7 @@ parser.add_argument("--latent_dim", type=int, default=20)
 parser.add_argument("--learning_rate", type=float, default=0.01)
 parser.add_argument("--max_epochs", type=int, default=50)
 parser.add_argument("--batch_size", type=int, default=256)
+parser.add_argument("--model",type=str, default="SimpleAE")
 args = parser.parse_args()
 
 class SimpleAE(nn.Module):
@@ -189,7 +190,7 @@ DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 LEARNING_RATE = args.learning_rate
 MAX_EPOCHS = args.max_epochs
 BATCH_SIZE = args.batch_size
-
+MODEL = args.model
 class ReconsImage(skorch.callbacks.Callback):
     @staticmethod
     def get_sample():
@@ -242,9 +243,83 @@ class ReconsImage(skorch.callbacks.Callback):
 
 recons_image = ReconsImage()
 
-trainer = NeuralNetAE(
+
+# trainer = NeuralNetAE(
+#     # models
+#     SimpleAE(28**2, args.latent_dim),
+#     optimizer= optim.Adam,
+#     criterion = nn.MSELoss,
+
+#     # hyper-params
+#     lr = LEARNING_RATE,
+#     batch_size=BATCH_SIZE,
+#     max_epochs = MAX_EPOCHS,
+#     device = DEVICE,
+#     train_split=skorch.dataset.ValidSplit(5), # 0.2 を valid setとして利用
+
+#     # callbacks
+#     callbacks=[("recons_image", recons_image)]
+# )
+# # prepare datasets
+# dataset = load_MNIST_skorch()
+# train_dataset = dataset["train"]
+# y_train = np.array([y for x, y in iter(train_dataset)]) # y_trainはダミーです．np.zeros(len(train_dataset))でもOK．
+
+# # training start!
+# trainer.fit(train_dataset, y_train)
+
+
+# def plot_loss(history, save_path=None):
+#     fig = plt.figure(figsize=[15,4])
+#     fig.suptitle("Reconstruction Error")
+#     fig.supxlabel("Epoch")
+#     fig.supylabel("MSE")
+
+#     ax = fig.add_subplot(1,3,1)
+#     ax.set_title("training loss and validation loss")
+#     ax.plot(history[:,"valid_loss"], label="validation_loss", color="red")
+#     ax.plot(history[:,"train_loss"], label="train_loss", color="blue")
+#     ax.legend()
+
+
+#     ax2 = fig.add_subplot(1,3,2)
+#     ax2.set_title("training loss")
+#     ax2.plot(history[:,"train_loss"], label="train_loss", color="blue")
+
+#     ax3 = fig.add_subplot(1,3,3)
+#     ax3.set_title("validation loss")
+#     ax3.plot(history[:,"valid_loss"], label="validation_loss", color="red")
+
+#     if save_path is not None:
+#         fig.savefig(save_path)
+#     plt.close()
+#     return fig
+
+# fig = plot_loss(trainer.history)
+# display(fig)
+
+
+# 今回は実験終了時間をファイル名に含めることにします．
+#with open(f"autoencoder_mnist-{dt_now}.html", "w") as f:
+#    f.write(anim.to_jshtml())
+
+
+
+if __name__ == "__main__":
+    latent_dim = args.latent_dim
+    learning_rate = args.learning_rate
+    max_epochs = args.max_epochs
+    batch_size = args.batch_size
+    model_class = args.model
+    
+    if model_class == "SimpleAE":
+        ae = SimpleAE(28**2, latent_dim)
+    elif model_class == "WeightTyingAE":
+        ae = WeightTyingAE(28**2, latent_dim)
+        
+    trainer = NeuralNetAE(
     # models
-    SimpleAE(28**2, args.latent_dim),
+    ae,
     optimizer= optim.Adam,
     criterion = nn.MSELoss,
 
@@ -257,59 +332,47 @@ trainer = NeuralNetAE(
 
     # callbacks
     callbacks=[("recons_image", recons_image)]
-)
-# prepare datasets
-dataset = load_MNIST_skorch()
-train_dataset = dataset["train"]
-y_train = np.array([y for x, y in iter(train_dataset)]) # y_trainはダミーです．np.zeros(len(train_dataset))でもOK．
+    )
+    # prepare datasets
+    dataset = load_MNIST_skorch()
+    train_dataset = dataset["train"]
+    y_train = np.array([y for x, y in iter(train_dataset)]) # y_trainはダミーです．np.zeros(len(train_dataset))でもOK．
 
-# training start!
-trainer.fit(train_dataset, y_train)
-
-
-def plot_loss(history, save_path=None):
-    fig = plt.figure(figsize=[15,4])
-    fig.suptitle("Reconstruction Error")
-    fig.supxlabel("Epoch")
-    fig.supylabel("MSE")
-
-    ax = fig.add_subplot(1,3,1)
-    ax.set_title("training loss and validation loss")
-    ax.plot(history[:,"valid_loss"], label="validation_loss", color="red")
-    ax.plot(history[:,"train_loss"], label="train_loss", color="blue")
-    ax.legend()
+    # training start!
+    trainer.fit(train_dataset, y_train)
 
 
-    ax2 = fig.add_subplot(1,3,2)
-    ax2.set_title("training loss")
-    ax2.plot(history[:,"train_loss"], label="train_loss", color="blue")
+    def plot_loss(history, save_path=None):
+        fig = plt.figure(figsize=[15,4])
+        fig.suptitle("Reconstruction Error")
+        fig.supxlabel("Epoch")
+        fig.supylabel("MSE")
 
-    ax3 = fig.add_subplot(1,3,3)
-    ax3.set_title("validation loss")
-    ax3.plot(history[:,"valid_loss"], label="validation_loss", color="red")
-
-    if save_path is not None:
-        fig.savefig(save_path)
-    plt.close()
-    return fig
-
-fig = plot_loss(trainer.history)
-display(fig)
+        ax = fig.add_subplot(1,3,1)
+        ax.set_title("training loss and validation loss")
+        ax.plot(history[:,"valid_loss"], label="validation_loss", color="red")
+        ax.plot(history[:,"train_loss"], label="train_loss", color="blue")
+        ax.legend()
 
 
-# 今回は実験終了時間をファイル名に含めることにします．
-#with open(f"autoencoder_mnist-{dt_now}.html", "w") as f:
-#    f.write(anim.to_jshtml())
+        ax2 = fig.add_subplot(1,3,2)
+        ax2.set_title("training loss")
+        ax2.plot(history[:,"train_loss"], label="train_loss", color="blue")
 
+        ax3 = fig.add_subplot(1,3,3)
+        ax3.set_title("validation loss")
+        ax3.plot(history[:,"valid_loss"], label="validation_loss", color="red")
 
+        if save_path is not None:
+            fig.savefig(save_path)
+        plt.close()
+        return fig
 
-if __name__ == "__main__":
-    # latent_dim = args.latent_dim
-    # learning_rate = args.learning_rate
-    # max_epochs = args.max_epochs
-    # batch_size = args.batch_size
-    
+    fig = plot_loss(trainer.history)
+    display(fig)
+
+        
     anim = ArtistAnimation(recons_image.fig_anime, recons_image.frames, interval=150)
     dt_now = datetime.now().strftime('%Y年%m月%d日%H時%M分%S秒')
     anim.save(f"autoencoder_mnist-{dt_now}.gif")
-    # display(HTML(anim.to_jshtml()))
+        # display(HTML(anim.to_jshtml()))

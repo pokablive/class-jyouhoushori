@@ -33,6 +33,7 @@ print("numpy ver.:",np.__version__)
 print("Apple Siliconが使える:", torch.backends.mps.is_available())
 print("CUDAが使える:", torch.cuda.is_available())
 
+
 parser = argparse.ArgumentParser("説明文")
 parser.add_argument("--latent_dim", type=int, default=20)
 parser.add_argument("--learning_rate", type=float, default=0.01)
@@ -316,7 +317,7 @@ if __name__ == "__main__":
         ae = SimpleAE(28**2, latent_dim)
     elif model_class == "WeightTyingAE":
         ae = WeightTyingAE(28**2, latent_dim)
-        
+    
     trainer = NeuralNetAE(
     # models
     ae,
@@ -328,6 +329,8 @@ if __name__ == "__main__":
     batch_size=BATCH_SIZE,
     max_epochs = MAX_EPOCHS,
     device = DEVICE,
+    
+
     train_split=skorch.dataset.ValidSplit(5), # 0.2 を valid setとして利用
 
     # callbacks
